@@ -52,12 +52,9 @@ void Merge(int* left, int* buffer, size_t left_count, size_t right_count) {
 // not bigger than |min_count|, apply quick sort algorithm.
 void SortJob(void* in) {
   SortTask* task = in;
-  printf("thread: %p, memory: %p ", pthread_self(), task->array); 
   if (task->size <= chunk_size) {
-    printf("qsort\n");
     qsort(task->array, task->size, sizeof(int), sort_compare);
   } else {
-    printf("merge\n");
     Merge(task->array, task->buffer, task->size / 2,
           task->size - task->size / 2);
   }

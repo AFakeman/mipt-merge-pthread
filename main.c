@@ -57,9 +57,10 @@ int main(int argc, char* argv[]) {
   SetChunkSize(chunk_size);
   time_spent_merge = MergeSort(array_merge, size, threads);
   PrintArray(array_merge, size, data);
+  fclose(data);
   fprintf(stats, "n: %lu, m: %lu, P: %d, t: %lf\n", size, chunk_size, threads,
           time_spent_merge);
-  fclose(data);
+  fclose(stats);
 
   assert(CheckSorted(array_merge, size));
   assert(!CheckSorted(array_qsort, size));
