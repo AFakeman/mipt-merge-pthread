@@ -9,7 +9,9 @@ typedef struct {
   atomic_int shutdown_;
   atomic_int done_;
   Stack stack_;
+  size_t task_count_;
   pthread_mutex_t stack_mutex_;
+  pthread_cond_t stack_condvar_;
 } ThreadPool;
 
 typedef struct ThreadTask {

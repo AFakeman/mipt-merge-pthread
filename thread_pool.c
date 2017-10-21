@@ -8,24 +8,32 @@
 ThreadTask* PopTask(ThreadPool* self) {
   void* result;
   pthread_mutex_lock(&(self->stack_mutex_));
-  result = StackPop(&(self->stack_));
+  while (!atomic_load(&(self->shutdown_)) && !self->task_count_)
+    pthread_cond_wait(&(self->stack_condvar_), &(self->stack_mutex_));
+  if (self->task_count_) {
+    result = StackPop(&(self->stack_));
+    --self->task_count_;
+  } else {
+    result = NULL;
+  }
   pthread_mutex_unlock(&(self->stack_mutex_));
+  pthread_cond_signal(&(self->stack_condvar_));
   return result;
 }
 
 void PushTask(ThreadPool* self, ThreadTask* data) {
   pthread_mutex_lock(&(self->stack_mutex_));
   StackPush(&(self->stack_), data);
+  ++self->task_count_;
   pthread_mutex_unlock(&(self->stack_mutex_));
+  pthread_cond_signal(&(self->stack_condvar_));
 }
 
 void* ThreadPoolThreadLoop(void* in) {
   ThreadPool* pool = in;
   ThreadTask* task = NULL;
 
-  while ((task = PopTask(pool)) || !atomic_load(&(pool->shutdown_))) {
-    if (!task)
-      continue;
+  while ((task = PopTask(pool))) {
     task->task(task->data);
     if (task->dep_) {
       if (atomic_fetch_sub(&(task->dep_->pending_), 1) == 1) {
@@ -42,8 +50,10 @@ void ThreadPoolInit(ThreadPool* self, size_t thread_count) {
   self->threads_ = malloc(thread_count * sizeof(pthread_t));
   atomic_store(&(self->shutdown_), 0);
   atomic_store(&(self->done_), 0);
+  self->task_count_ = 0;
   StackInit(&(self->stack_));
   pthread_mutex_init(&(self->stack_mutex_), NULL);
+  pthread_cond_init(&(self->stack_condvar_), NULL);
 }
 
 void ThreadPoolDestroy(ThreadPool* self) {
@@ -54,6 +64,7 @@ void ThreadPoolDestroy(ThreadPool* self) {
   free(self->threads_);
   assert(StackEmpty(&(self->stack_)));
   pthread_mutex_destroy(&(self->stack_mutex_));
+  pthread_cond_destroy(&(self->stack_condvar_));
 }
 
 void ThreadPoolStart(ThreadPool* self) {
@@ -65,6 +76,7 @@ void ThreadPoolStart(ThreadPool* self) {
 
 void ThreadPoolShutdown(ThreadPool* self) {
   atomic_store(&(self->shutdown_), 1);
+  pthread_cond_signal(&(self->stack_condvar_));
 }
 
 void ThreadPoolCreateTask(ThreadTask* task, void* data, void (*func)(void*)) {
