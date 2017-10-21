@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 
   time_spent_qsort = QuickSort(array_qsort, size);
 
-  printf("Merge: %lf\nqsort: %lf", time_spent_merge, time_spent_qsort);
+  printf("Merge: %lf\nqsort: %lf\n", time_spent_merge, time_spent_qsort);
 
   assert(CheckSorted(array_merge, size));
   assert(CheckSorted(array_qsort, size));
