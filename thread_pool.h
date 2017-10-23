@@ -1,17 +1,17 @@
 #include <pthread.h>
 #include <stdatomic.h>
 
-#include "stack.h"
+#include "queue.h"
 
 typedef struct {
   size_t thread_count_;
   pthread_t* threads_;
   atomic_int shutdown_;
   atomic_int done_;
-  Stack stack_;
+  Queue queue_;
   size_t task_count_;
-  pthread_mutex_t stack_mutex_;
-  pthread_cond_t stack_condvar_;
+  pthread_mutex_t queue_mutex_;
+  pthread_cond_t queue_condvar_;
 } ThreadPool;
 
 typedef struct ThreadTask {
